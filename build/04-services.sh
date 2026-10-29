@@ -12,13 +12,11 @@ enable_service() {
 }
 
 # --- getty ---
-# tty0 (the screen) and ttyS0 (serial, useful for debugging)
-enable_service agetty.tty0 default
-enable_service agetty.ttyS0 default
-
-# Agetty needs per-tty symlinks for OpenRC; create the init.d entries
+# OpenRC needs an init.d symlink before a runlevel symlink can point at it
 ln -sf agetty "$ROOTFS/etc/init.d/agetty.tty0"
 ln -sf agetty "$ROOTFS/etc/init.d/agetty.ttyS0"
+enable_service agetty.tty0 default
+enable_service agetty.ttyS0 default
 
 # Configure agetty for each tty
 mkdir -p "$ROOTFS/etc/conf.d"
@@ -40,12 +38,10 @@ if [ "$ENABLE_SSH" = "true" ]; then
   enable_service sshd default
 fi
 
-# --- modules (loads modules-load.d entries including joypad) ---
+# --- modules (loads /etc/modules entries including joypad) ---
 enable_service modules boot
 
-# --- resize (first boot, self-deletes) ---
-install -Dm755 "$TOP/overlay/etc/init.d/rg35xxh-resize" \
-  "$ROOTFS/etc/init.d/rg35xxh-resize"
+# --- resize (first boot, self-deletes; already in rootfs via overlay copy in 03) ---
 enable_service rg35xxh-resize boot
 
 echo "Done: services configured"

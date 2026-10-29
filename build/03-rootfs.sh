@@ -29,14 +29,9 @@ EOF
 
 # --- Install packages ---
 echo "Installing packages..."
-apk add --root "$ROOTFS" --initdb --no-cache \
-  alpine-base \
-  kmod \
-  iwd \
-  e2fsprogs \
-  tzdata \
-  doas \
-  $([ "$ENABLE_SSH" = "true" ] && echo openssh)
+PKGS="alpine-base kmod iwd e2fsprogs parted tzdata doas"
+[ "$ENABLE_SSH" = "true" ] && PKGS="$PKGS openssh"
+apk add --root "$ROOTFS" --no-cache $PKGS
 
 # --- ROCKNIX modules and firmware ---
 echo "Installing kernel modules and firmware..."
@@ -55,11 +50,10 @@ in_chroot "ln -sf /usr/share/zoneinfo/$TIMEZONE /etc/localtime"
 echo "$TIMEZONE" > "$ROOTFS/etc/timezone"
 
 # --- Users ---
-echo "root:$ROOT_PASSWORD" | in_chroot "chpasswd" 2>/dev/null || \
-  in_chroot "echo root:$ROOT_PASSWORD | chpasswd"
+printf 'root:%s\n' "$ROOT_PASSWORD" | chroot "$ROOTFS" chpasswd
 
 in_chroot "adduser -D -s /bin/sh $DEFAULT_USER"
-echo "$DEFAULT_USER:$DEFAULT_PASSWORD" | in_chroot "chpasswd"
+printf '%s:%s\n' "$DEFAULT_USER" "$DEFAULT_PASSWORD" | chroot "$ROOTFS" chpasswd
 
 if [ "$DEFAULT_USER_WHEEL" = "true" ]; then
   in_chroot "adduser $DEFAULT_USER wheel"
@@ -75,9 +69,9 @@ PARTUUID=$PARTUUID_ROOT  /       ext4  defaults,noatime  0 1
 PARTUUID=$PARTUUID_BOOT  /boot   vfat  defaults,noatime  0 2
 EOF
 
-# --- modules-load.d ---
-install -Dm644 "$TOP/overlay/etc/modules-load.d/rg35xxh.conf" \
-  "$ROOTFS/etc/modules-load.d/rg35xxh.conf"
+# --- kernel modules to load at boot ---
+# Alpine OpenRC's 'modules' service reads /etc/modules (not modules-load.d)
+echo "rocknix-singleadc-joypad" >> "$ROOTFS/etc/modules"
 
 # --- overlay ---
 echo "Copying overlay..."

@@ -40,7 +40,10 @@ IMG="$OUT/rg35xxh-alpine-${PANEL}-${VER}.img"
 
 # --- FAT boot partition ---
 mkfs.vfat -F 32 -n "$BOOT_LABEL" -C "$P/boot.vfat" $(( BOOT_SIZE_MIB * 1024 )) >/dev/null
-MTOOLS_SKIP_CHECK=1 mcopy -s -i "$P/boot.vfat" "$P/boot/"* ::/
+# mcopy each item explicitly to avoid glob picking up boot.vfat itself
+MTOOLS_SKIP_CHECK=1 mcopy -i "$P/boot.vfat" "$P/boot/KERNEL" "$P/boot/dtb.img" \
+  "$P/boot/rootfix.cpio" "$P/boot/panel.txt" ::/
+MTOOLS_SKIP_CHECK=1 mcopy -s -i "$P/boot.vfat" "$P/boot/extlinux" ::/
 
 # --- ext4 root partition ---
 mkfs.ext4 -q -F -L "$ROOT_LABEL" -d "$ROOTFS" -E root_owner=0:0 "$P/root.ext4" "${ROOT_SIZE_MIB}M"
