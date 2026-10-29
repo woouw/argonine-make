@@ -1,0 +1,29 @@
+#!/sbin/openrc-run
+# Grow the root partition and filesystem to fill the SD card on first boot.
+# Self-destructs after running so it never runs again.
+
+description="Resize root partition to fill SD card (first boot)"
+
+depend() {
+    need localmount
+    before modules
+}
+
+start() {
+    ebegin "Resizing root partition to fill SD card"
+
+    # Find the root block device from the mount table
+    ROOT_DEV="$(findmnt -n -o SOURCE /)"
+    DISK="${ROOT_DEV%p*}"
+    PART_NUM="${ROOT_DEV##*p}"
+
+    # Resize the partition to fill the disk, then the filesystem
+    parted -s "$DISK" resizepart "$PART_NUM" 100%
+    resize2fs "$ROOT_DEV"
+
+    eend $?
+
+    # Self-destruct: never run again
+    rc-update del rg35xxh-resize boot
+    rm -f /etc/init.d/rg35xxh-resize
+}

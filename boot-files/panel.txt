@@ -1,0 +1,7 @@
+# This image was built for the PANEL screen panel.
+# Do not edit — the correct device tree is already baked into dtb.img.
+#
+# To check which panel your unit has, boot any Linux and run:
+#   sudo gpioget --bias=pull-up --chip /dev/gpiochip1 134
+#   "active"   = regular panel
+#   "inactive" = rev6 panel
