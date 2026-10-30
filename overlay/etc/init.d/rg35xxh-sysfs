@@ -1,0 +1,19 @@
+#!/sbin/openrc-run
+# Mount sysfs before filesystem checks and device-dependent services.
+
+description="Mount sysfs"
+
+depend() {
+    before checkfs
+}
+
+start() {
+    ebegin "Mounting sysfs"
+    mkdir -p /sys
+    if grep -qs ' /sys sysfs ' /proc/mounts; then
+        eend 0
+        return 0
+    fi
+    mount -t sysfs sysfs /sys
+    eend $?
+}
