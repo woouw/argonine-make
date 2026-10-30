@@ -11,6 +11,10 @@ enable_service() {
   ln -sf "/etc/init.d/$svc" "$ROOTFS/etc/runlevels/$runlevel/$svc"
 }
 
+# --- early sysfs mount ---
+# sysfs is needed by filesystem/device discovery during boot.
+enable_service rg35xxh-sysfs sysinit
+
 # --- getty ---
 # OpenRC needs an init.d symlink before a runlevel symlink can point at it
 ln -sf agetty "$ROOTFS/etc/init.d/agetty.tty0"
