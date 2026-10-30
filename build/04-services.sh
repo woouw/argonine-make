@@ -17,6 +17,14 @@ chmod 755 "$ROOTFS/etc/init.d/rg35xxh-sysfs"
 # sysfs is needed by filesystem/device discovery during boot.
 enable_service rg35xxh-sysfs sysinit
 
+# --- eudev device manager ---
+# eudev replaces Alpine's default mdev device manager; do not run both.
+rm -f "$ROOTFS/etc/runlevels/sysinit/mdev" "$ROOTFS/etc/runlevels/hotplugged/mdev"
+enable_service udev sysinit
+enable_service udev-trigger sysinit
+enable_service udev-settle sysinit
+enable_service udev-postmount default
+
 # --- getty ---
 # OpenRC needs an init.d symlink before a runlevel symlink can point at it
 ln -sf agetty "$ROOTFS/etc/init.d/agetty.tty0"
