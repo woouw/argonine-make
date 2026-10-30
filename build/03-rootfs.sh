@@ -40,7 +40,7 @@ EOF
 
 # --- Install packages ---
 echo "Installing packages..."
-PKGS="alpine-base kmod iwd iwd-openrc openresolv dbus dbus-openrc dosfstools e2fsprogs e2fsprogs-extra findmnt parted tzdata doas"
+PKGS="alpine-base kmod iwd iwd-openrc openresolv dbus dbus-openrc dosfstools e2fsprogs e2fsprogs-extra findmnt parted tzdata doas eudev eudev-openrc udev-init-scripts-openrc"
 [ "$ENABLE_SSH" = "true" ] && PKGS="$PKGS openssh"
 
 # Some restricted host environments reject namespace operations used by APK
@@ -60,6 +60,10 @@ in_chroot "command -v iwctl >/dev/null 2>&1 && command -v resolvconf >/dev/null 
 [ -x "$ROOTFS/usr/libexec/iwd" ] || die "iwd daemon binary is missing"
 [ -f "$ROOTFS/etc/init.d/iwd" ] || die "iwd OpenRC service is missing"
 [ -f "$ROOTFS/etc/init.d/dbus" ] || die "D-Bus OpenRC service is missing"
+[ -x "$ROOTFS/etc/init.d/udev" ] || die "eudev OpenRC service is missing"
+[ -x "$ROOTFS/etc/init.d/udev-trigger" ] || die "eudev trigger service is missing"
+[ -x "$ROOTFS/etc/init.d/udev-settle" ] || die "eudev settle service is missing"
+[ -x "$ROOTFS/etc/init.d/udev-postmount" ] || die "eudev postmount service is missing"
 
 # --- ROCKNIX modules and firmware ---
 echo "Installing kernel modules and firmware..."
@@ -83,6 +87,12 @@ printf 'root:%s\n' "$ROOT_PASSWORD" | in_chroot "chpasswd"
 in_chroot "adduser -D -s /bin/sh $DEFAULT_USER"
 printf '%s:%s\n' "$DEFAULT_USER" "$DEFAULT_PASSWORD" | in_chroot "chpasswd"
 
+# Device-node access for DRM/KMS and libinput.
+for group in video render input; do
+  in_chroot "addgroup -S $group 2>/dev/null || true"
+  in_chroot "adduser $DEFAULT_USER $group"
+done
+
 if [ "$DEFAULT_USER_WHEEL" = "true" ]; then
   in_chroot "adduser $DEFAULT_USER wheel"
 fi
@@ -94,8 +104,7 @@ in_chroot "adduser -S -D -H -h /var/run/dbus -s /sbin/nologin -G messagebus mess
 in_chroot "mkdir -p /var/run/dbus /var/lib/dbus && dbus-uuidgen --ensure=/etc/machine-id"
 
 # --- fstab ---
-# Use filesystem labels: this image does not run udev, so /dev/disk/by-partuuid
-# symlinks are not guaranteed to exist on the handheld.
+# Labels are used as a fallback; eudev provides device discovery and symlinks.
 cat > "$ROOTFS/etc/fstab" <<EOF
 LABEL=$ROOT_LABEL  /       ext4  defaults,noatime  0 1
 LABEL=$BOOT_LABEL  /boot   vfat  defaults,noatime  0 2
