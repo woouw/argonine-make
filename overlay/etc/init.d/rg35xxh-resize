@@ -1,6 +1,6 @@
 #!/sbin/openrc-run
 # Grow the root partition and filesystem to fill the SD card on first boot.
-# Self-destructs after running so it never runs again.
+# Keep the service enabled if any step fails so it can be retried.
 
 description="Resize root partition to fill SD card (first boot)"
 
@@ -12,18 +12,63 @@ depend() {
 start() {
     ebegin "Resizing root partition to fill SD card"
 
-    # Find the root block device from the mount table
-    ROOT_DEV="$(findmnt -n -o SOURCE /)"
-    DISK="${ROOT_DEV%p*}"
-    PART_NUM="${ROOT_DEV##*p}"
+    if ! command -v findmnt >/dev/null 2>&1; then
+        eerror "findmnt is missing"
+        eend 1
+        return 1
+    fi
+    if ! command -v parted >/dev/null 2>&1; then
+        eerror "parted is missing"
+        eend 1
+        return 1
+    fi
+    if ! command -v resize2fs >/dev/null 2>&1; then
+        eerror "resize2fs is missing (install e2fsprogs-extra)"
+        eend 1
+        return 1
+    fi
 
-    # Resize the partition to fill the disk, then the filesystem
-    parted -s "$DISK" resizepart "$PART_NUM" 100%
-    resize2fs "$ROOT_DEV"
+    ROOT_DEV="$(findmnt -n -o SOURCE /)" || {
+        eerror "could not determine root block device"
+        eend 1
+        return 1
+    }
 
-    eend $?
+    # This image uses an MMC partition such as /dev/mmcblk0p2.
+    case "$ROOT_DEV" in
+        /dev/mmcblk*p[0-9]*)
+            PART_NUM="${ROOT_DEV##*p}"
+            DISK="${ROOT_DEV%p$PART_NUM}"
+            ;;
+        *)
+            eerror "unexpected root device: $ROOT_DEV"
+            eend 1
+            return 1
+            ;;
+    esac
 
-    # Self-destruct: never run again
+    if [ ! -b "$ROOT_DEV" ] || [ ! -b "$DISK" ]; then
+        eerror "root device or parent disk does not exist: $ROOT_DEV / $DISK"
+        eend 1
+        return 1
+    fi
+
+    if ! parted -s "$DISK" resizepart "$PART_NUM" 100%; then
+        eerror "failed to extend root partition"
+        eend 1
+        return 1
+    fi
+
+    if ! resize2fs "$ROOT_DEV"; then
+        eerror "failed to grow root filesystem"
+        eend 1
+        return 1
+    fi
+
+    eend 0
+
+    # Only disable the one-shot service after both operations succeed.
     rc-update del rg35xxh-resize boot
     rm -f /etc/init.d/rg35xxh-resize
+    return 0
 }
