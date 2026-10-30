@@ -16,7 +16,7 @@ in_chroot() {
 
 fetch() {
   # fetch <url> <dest> [sha256]
-  local url="$1" dest="$2" expected="$3"
+  local url="$1" dest="$2" expected="${3:-}"
   if [ ! -f "$dest" ]; then
     echo "Downloading $(basename "$dest")..."
     curl -fL --retry 3 -o "$dest.part" "$url"
