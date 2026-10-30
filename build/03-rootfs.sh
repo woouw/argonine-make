@@ -11,10 +11,12 @@ source "$(dirname "$0")/lib/util.sh"
 
 assert_rocknix
 
-# --- QEMU user-static (needed to chroot into aarch64 rootfs on x86_64) ---
-QEMU_AARCH64="$(command -v qemu-aarch64-static 2>/dev/null || true)"
+# --- QEMU user emulator (needed to chroot into aarch64 rootfs on x86_64) ---
+# Debian packages the static binary as qemu-aarch64-static; Alpine provides
+# qemu-aarch64. Keep the in-rootfs filename stable for the chroot/binfmt setup.
+QEMU_AARCH64="$(command -v qemu-aarch64-static 2>/dev/null || command -v qemu-aarch64 2>/dev/null || true)"
 if [ -z "$QEMU_AARCH64" ]; then
-  die "qemu-aarch64-static not found — install qemu-user-static:\n  Alpine: apk add qemu-user-static\n  Debian/Ubuntu: apt install qemu-user-static"
+  die "QEMU AArch64 user emulator not found — install one of:\n  Alpine: apk add qemu-aarch64\n  Debian/Ubuntu: apt install qemu-user-static"
 fi
 
 # --- Alpine minirootfs ---
@@ -27,9 +29,8 @@ mkdir -p "$ROOTFS"
 echo "Extracting Alpine minirootfs..."
 tar xf "$ALPINE_TAR" -C "$ROOTFS"
 
-# Copy qemu-aarch64-static into the rootfs so chroot works on x86_64
-mkdir -p "$ROOTFS/usr/bin"
-cp "$QEMU_AARCH64" "$ROOTFS/usr/bin/qemu-aarch64-static"
+# Copy the emulator into the rootfs using the stable binfmt interpreter name.
+install -Dm755 "$QEMU_AARCH64" "$ROOTFS/usr/bin/qemu-aarch64-static"
 
 # --- APK repos ---
 cat > "$ROOTFS/etc/apk/repositories" <<EOF
