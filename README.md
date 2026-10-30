@@ -3,7 +3,7 @@
 Boots Alpine Linux on the RG35XX H (Allwinner H700). Drops you at a TTY with Wi-Fi (iwd) ready to go. Build it yourself, flash it, `apk add` whatever you want.
 
 **Hardware layer:** kernel, U-Boot, device trees and firmware from [ROCKNIX](https://github.com/ROCKNIX/distribution) `20261001` (kernel 7.2).  
-**Userspace:** Alpine Linux 3.21 (aarch64, musl).
+**Userspace:** Alpine Linux 3.24.3 (aarch64, musl).
 
 ## Before you build: find your panel
 
@@ -20,10 +20,11 @@ sudo gpioget --bias=pull-up --chip /dev/gpiochip1 134
 
 ## Build
 
-Requires: `bash`, `curl`, `qemu-aarch64`, `proot`, `mtools`, `squashfs-tools`, `e2fsprogs`, `parted`, `xz`, `cpio`, `sfdisk`.
+Build host packages: `bash`, `curl`, `qemu-aarch64`, `proot`, `mtools`, `squashfs-tools`, `e2fsprogs`, `dosfstools`, `util-linux` (for `sfdisk`), `rsync`, `xz`, and `cpio`.
 
 ```sh
-# edit build/config.sh first: set PANEL, ROOT_PASSWORD, DEFAULT_PASSWORD etc.
+# edit build/config.sh first: set PANEL and unique passwords
+# Do not keep the sample root/alpine passwords when SSH is enabled.
 sudo bash build/build-all.sh
 # → work/out/rg35xxh-alpine-regular-<date>.img.xz
 ```
