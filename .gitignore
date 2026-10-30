@@ -3,3 +3,4 @@ work/
 *.img.xz
 *.img.gz
 *.sha256
+local.env

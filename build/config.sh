@@ -26,17 +26,17 @@ ALPINE_SHA256="4d3f80afaebd447c5591a63a73bde380a149fe8b2d85488cafabb2ff97551f50"
 PANEL="${PANEL:-regular}"
 
 # --- System identity ---
-HOSTNAME="rg35xxh"
-TIMEZONE="UTC"
+HOSTNAME="${HOSTNAME:-rg35xxh}"
+TIMEZONE="${TIMEZONE:-UTC}"
 
 # --- Users ---
-ROOT_PASSWORD="root"
-DEFAULT_USER="alpine"
-DEFAULT_PASSWORD="alpine"
-DEFAULT_USER_WHEEL=true
+ROOT_PASSWORD="${ROOT_PASSWORD:-root}"
+DEFAULT_USER="${DEFAULT_USER:-alpine}"
+DEFAULT_PASSWORD="${DEFAULT_PASSWORD:-alpine}"
+DEFAULT_USER_WHEEL="${DEFAULT_USER_WHEEL:-true}"
 
 # --- Features ---
-ENABLE_SSH=true
+ENABLE_SSH="${ENABLE_SSH:-true}"
 
 # --- Image layout ---
 DISK_ID="0x52473335"
