@@ -2,6 +2,11 @@
 TOP="$(cd "$(dirname "$(realpath "${BASH_SOURCE[0]}")")/.." && pwd)"
 WORK="${WORK:-$TOP/work}"
 
+# Load local overrides if present — safe to run multiple times (idempotent)
+if [ -f "$TOP/local.env" ]; then
+  set -a; source "$TOP/local.env"; set +a
+fi
+
 # --- ROCKNIX hardware layer ---
 ROCKNIX_VERSION="20261001"
 RAM_TYPE="${RAM_TYPE:-DDR4}"          # DDR4 (default) or DDR3
