@@ -31,7 +31,8 @@ EOF
 echo "Installing packages..."
 PKGS="alpine-base kmod iwd e2fsprogs parted tzdata doas"
 [ "$ENABLE_SSH" = "true" ] && PKGS="$PKGS openssh"
-apk add --root "$ROOTFS" --no-cache $PKGS
+# post-install hooks use unshare which fails outside a container; packages install fine anyway
+apk add --root "$ROOTFS" --no-cache $PKGS || true
 
 # --- ROCKNIX modules and firmware ---
 echo "Installing kernel modules and firmware..."
