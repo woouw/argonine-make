@@ -1,0 +1,5 @@
+# Allow the local desktop user (video/render/input groups) to access
+# the DRM/KMS devices and evdev nodes used by wlroots and libinput.
+SUBSYSTEM=="drm", KERNEL=="card[0-9]*", GROUP="video", MODE="0660"
+SUBSYSTEM=="drm", KERNEL=="renderD[0-9]*", GROUP="render", MODE="0660"
+SUBSYSTEM=="input", KERNEL=="event[0-9]*", GROUP="input", MODE="0660"
