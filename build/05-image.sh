@@ -59,8 +59,8 @@ start=$(( (BOOT_START_MIB + BOOT_SIZE_MIB) * 2048 )), size=$(( ROOT_SIZE_MIB * 2
 EOF
 
 dd if="$ROCKNIX_EX/bootloader/u-boot-sunxi-with-spl.bin" of="$IMG.part" bs=1024 seek=8 conv=notrunc status=none
-dd if="$P/boot.vfat" of="$IMG.part" bs=1M seek="$BOOT_START_MIB" conv=notrunc,sparse status=none
-dd if="$P/root.ext4" of="$IMG.part" bs=1M seek=$(( BOOT_START_MIB + BOOT_SIZE_MIB )) conv=notrunc,sparse status=none
+dd if="$P/boot.vfat" of="$IMG.part" bs=1M seek="$BOOT_START_MIB" conv=notrunc status=none
+dd if="$P/root.ext4" of="$IMG.part" bs=1M seek=$(( BOOT_START_MIB + BOOT_SIZE_MIB )) conv=notrunc status=none
 mv "$IMG.part" "$IMG"
 rm -rf "$P"
 
