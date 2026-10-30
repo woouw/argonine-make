@@ -20,7 +20,7 @@ sudo gpioget --bias=pull-up --chip /dev/gpiochip1 134
 
 ## Build
 
-Requires: `bash`, `curl`, `mtools`, `squashfs-tools`, `e2fsprogs`, `parted`, `xz`, `cpio`, `sfdisk`.
+Requires: `bash`, `curl`, `qemu-aarch64`, `proot`, `mtools`, `squashfs-tools`, `e2fsprogs`, `parted`, `xz`, `cpio`, `sfdisk`.
 
 ```sh
 # edit build/config.sh first: set PANEL, ROOT_PASSWORD, DEFAULT_PASSWORD etc.
