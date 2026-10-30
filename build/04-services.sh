@@ -12,6 +12,8 @@ enable_service() {
 }
 
 # --- early sysfs mount ---
+# GitHub-created overlay files may not retain executable mode; enforce it here.
+chmod 755 "$ROOTFS/etc/init.d/rg35xxh-sysfs"
 # sysfs is needed by filesystem/device discovery during boot.
 enable_service rg35xxh-sysfs sysinit
 
