@@ -12,10 +12,10 @@ ROCKNIX_EX="$WORK/rocknix"
 KVER="7.2.0"
 
 # --- Alpine ---
-ALPINE_VERSION="3.21.3"
+ALPINE_VERSION="3.24.3"
 ALPINE_ARCH="aarch64"
 ALPINE_URL="https://dl-cdn.alpinelinux.org/alpine/v${ALPINE_VERSION%.*}/releases/${ALPINE_ARCH}/alpine-minirootfs-${ALPINE_VERSION}-${ALPINE_ARCH}.tar.gz"
-ALPINE_SHA256="87da2e89f3a0f3d4b3e8b576b784e2a1c2e5d6f7a8b9c0d1e2f3a4b5c6d7e8f9"  # replace before use
+ALPINE_SHA256="4d3f80afaebd447c5591a63a73bde380a149fe8b2d85488cafabb2ff97551f50"
 
 # --- Panel ---
 # Which screen panel does this unit have?
