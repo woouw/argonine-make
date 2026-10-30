@@ -46,7 +46,7 @@ Put the card in the **TF1** (left) slot and power on.
 
 ## First boot
 
-Login: user `alpine`, password `alpine` (or whatever you set in `config.sh`).  
+Login with the username and password configured in `build/config.sh`. The sample defaults (`alpine/alpine` and `root/root`) are not safe to keep when SSH is enabled.  
 Run `setup-alpine` to set timezone, locale, keymap etc.  
 Wi-Fi: `iwctl` → `station wlan0 connect <SSID>`.
 
