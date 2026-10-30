@@ -47,14 +47,16 @@ PKGS="alpine-base kmod iwd iwd-openrc openresolv dbus dbus-openrc dosfstools e2f
 # Outside a real container this always fails. Stub it out at the exact path
 # apk will call, then restore after install.
 mkdir -p "$ROOTFS/usr/bin" "$ROOTFS/bin" "$ROOTFS/sbin" "$ROOTFS/usr/sbin"
-STUB='#!/bin/sh
-exit 0'
+# Stub unshare with the host's 'true' binary — it's a native ELF that needs
+# no interpreter inside the (empty) rootfs and always exits 0.
+# apk hooks call /usr/bin/unshare by absolute path so we cover all locations.
+TRUE_BIN="$(command -v true)"
 for stub_path in \
     "$ROOTFS/usr/bin/unshare" \
     "$ROOTFS/bin/unshare" \
     "$ROOTFS/usr/sbin/unshare" \
     "$ROOTFS/sbin/unshare"; do
-  printf '%s\n' "$STUB" > "$stub_path"
+  cp "$TRUE_BIN" "$stub_path"
   chmod +x "$stub_path"
 done
 
