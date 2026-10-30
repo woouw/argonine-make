@@ -11,7 +11,9 @@ assert_rocknix() {
 }
 
 in_chroot() {
-  chroot "$ROOTFS" /bin/sh -c "$1"
+  # Run the target AArch64 shell explicitly through QEMU. This avoids
+  # requiring host binfmt_misc registration for cross-architecture chroots.
+  chroot "$ROOTFS" /usr/bin/qemu-aarch64-static /bin/sh -c "$1"
 }
 
 fetch() {
