@@ -36,6 +36,9 @@ agetty_tty=ttyS0
 agetty_baud_rate=115200
 EOF
 
+# --- D-Bus (required by iwd) ---
+enable_service dbus default
+
 # --- iwd ---
 enable_service iwd default
 
