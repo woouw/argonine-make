@@ -10,19 +10,25 @@ assert_rocknix() {
   [ -d "$ROCKNIX_EX/modules/$KVER" ] || die "ROCKNIX hardware layer not found — run 02-extract-rocknix.sh first"
 }
 
+# Run an AArch64 command with the target rootfs as its filesystem root.
+# PRoot redirects absolute paths; QEMU alone (-L) only sets the ELF library prefix.
 in_chroot() {
-  # Run the target BusyBox shell directly through host QEMU. Do not chroot
-  # first: without binfmt_misc, the kernel cannot launch AArch64 child binaries.
-  local qemu="${QEMU_AARCH64:-$(command -v qemu-aarch64-static 2>/dev/null || command -v qemu-aarch64 2>/dev/null)}"
-  "$qemu" -L "$ROOTFS" "$ROOTFS/bin/busybox" sh -c "$1"
+  local command="$1"
+  local proot="${PROOT:-$(command -v proot 2>/dev/null || true)}"
+  local qemu="${QEMU_AARCH64:-$(command -v qemu-aarch64-static 2>/dev/null || command -v qemu-aarch64 2>/dev/null || true)}"
+  [ -n "$proot" ] || die "proot not found — install it with: apk add proot"
+  [ -n "$qemu" ] || die "QEMU AArch64 user emulator not found — install it with: apk add qemu-aarch64"
+  "$proot" -q "$qemu" -r "$ROOTFS" /bin/sh -c "$command"
 }
 
 in_chroot_exec() {
-  # Run a standalone AArch64 executable from the target rootfs via host QEMU.
   local binary="$1"
   shift
-  local qemu="${QEMU_AARCH64:-$(command -v qemu-aarch64-static 2>/dev/null || command -v qemu-aarch64 2>/dev/null)}"
-  "$qemu" -L "$ROOTFS" "$ROOTFS$binary" "$@"
+  local proot="${PROOT:-$(command -v proot 2>/dev/null || true)}"
+  local qemu="${QEMU_AARCH64:-$(command -v qemu-aarch64-static 2>/dev/null || command -v qemu-aarch64 2>/dev/null || true)}"
+  [ -n "$proot" ] || die "proot not found — install it with: apk add proot"
+  [ -n "$qemu" ] || die "QEMU AArch64 user emulator not found — install it with: apk add qemu-aarch64"
+  "$proot" -q "$qemu" -r "$ROOTFS" "$binary" "$@"
 }
 
 fetch() {
