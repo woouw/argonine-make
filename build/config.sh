@@ -37,6 +37,7 @@ DEFAULT_USER_WHEEL="${DEFAULT_USER_WHEEL:-true}"
 
 # --- Features ---
 ENABLE_SSH="${ENABLE_SSH:-true}"
+MAKE_GZ_IMAGE="${MAKE_GZ_IMAGE:-true}"   # set to false to skip xz compression
 
 # --- Image layout ---
 DISK_ID="0x52473335"

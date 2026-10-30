@@ -64,8 +64,16 @@ dd if="$P/root.ext4" of="$IMG.part" bs=1M seek=$(( BOOT_START_MIB + BOOT_SIZE_MI
 mv "$IMG.part" "$IMG"
 rm -rf "$P"
 
-echo "Compressing..."
-xz -T0 -6 -k -f "$IMG"
-( cd "$OUT" && sha256sum "$(basename "$IMG").xz" > "$(basename "$IMG").xz.sha256" )
-echo "Done: $IMG.xz"
+# sha256 for the bare .img
+( cd "$OUT" && sha256sum "$(basename "$IMG")" > "$(basename "$IMG").sha256" )
+
+if [ "${MAKE_GZ_IMAGE:-true}" = "true" ]; then
+  echo "Compressing..."
+  xz -T0 -6 -k -f "$IMG"
+  ( cd "$OUT" && sha256sum "$(basename "$IMG").xz" > "$(basename "$IMG").xz.sha256" )
+  echo "Done: $IMG.xz"
+else
+  echo "Skipping compression (MAKE_GZ_IMAGE=false)"
+  echo "Done: $IMG"
+fi
 ls -lh "$OUT"
