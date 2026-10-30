@@ -43,43 +43,18 @@ echo "Installing packages..."
 PKGS="alpine-base kmod iwd iwd-openrc openresolv dbus dbus-openrc dosfstools e2fsprogs e2fsprogs-extra findmnt parted tzdata doas eudev eudev-openrc udev-init-scripts-openrc libinput"
 [ "$ENABLE_SSH" = "true" ] && PKGS="$PKGS openssh"
 
-# apk post-install hooks call unshare via absolute path (/usr/bin/unshare).
-# Outside a real container this always fails. Stub it out at the exact path
-# apk will call, then restore after install.
-mkdir -p "$ROOTFS/usr/bin" "$ROOTFS/bin" "$ROOTFS/sbin" "$ROOTFS/usr/sbin"
-# Stub unshare with the host's 'true' binary — it's a native ELF that needs
-# no interpreter inside the (empty) rootfs and always exits 0.
-# apk hooks call /usr/bin/unshare by absolute path so we cover all locations.
-TRUE_BIN="$(command -v true)"
-for stub_path in \
-    "$ROOTFS/usr/bin/unshare" \
-    "$ROOTFS/bin/unshare" \
-    "$ROOTFS/usr/sbin/unshare" \
-    "$ROOTFS/sbin/unshare"; do
-  cp "$TRUE_BIN" "$stub_path"
-  chmod +x "$stub_path"
-done
-
+# apk post-install hooks call unshare and fail outside a real container.
+# This is harmless — all package files are extracted correctly regardless.
+# We just ignore the non-zero exit and verify each package was installed.
 apk --root "$ROOTFS" --arch "$ALPINE_ARCH" add --no-cache $PKGS || {
-  # apk exits non-zero when any hook fails; check every package was installed
   FAILED=
   for pkg in $PKGS; do
     apk --root "$ROOTFS" --arch "$ALPINE_ARCH" info -e "$pkg" >/dev/null 2>&1 \
       || FAILED="$FAILED $pkg"
   done
   [ -z "$FAILED" ] || die "packages not installed:$FAILED"
-  echo "All packages installed (hook errors above are expected outside a container)"
+  echo "All packages installed (hook errors above are harmless outside a container)"
 }
-
-# Restore real unshare now that util-linux is installed
-for stub_path in \
-    "$ROOTFS/usr/bin/unshare" \
-    "$ROOTFS/bin/unshare" \
-    "$ROOTFS/usr/sbin/unshare" \
-    "$ROOTFS/sbin/unshare"; do
-  # Only remove if it's still our stub (size <20 bytes)
-  [ "$(wc -c < "$stub_path" 2>/dev/null || echo 999)" -lt 20 ] && rm -f "$stub_path"
-done
 
 # Check the actual payloads, not just APK's installed-package database.
 # This catches partial installs where package hooks or file extraction failed.
