@@ -53,8 +53,12 @@ start() {
         return 1
     fi
 
-    if ! parted -s "$DISK" resizepart "$PART_NUM" 100%; then
-        eerror "failed to extend root partition"
+    # Parted warns and asks for confirmation when the root partition is
+    # mounted. In OpenRC boot, stdin is not an interactive terminal, and
+    # -s can make that confirmation fail. Pretend stdin is a tty and feed
+    # the explicit affirmative response; retain Parted's actual error.
+    if ! printf 'Yes\n' | parted ---pretend-input-tty "$DISK" resizepart "$PART_NUM" 100%; then
+        eerror "failed to extend root partition (parted returned failure; see output above)"
         eend 1
         return 1
     fi
