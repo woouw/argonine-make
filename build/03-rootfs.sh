@@ -42,8 +42,15 @@ EOF
 echo "Installing packages..."
 PKGS="alpine-base kmod iwd e2fsprogs parted tzdata doas"
 [ "$ENABLE_SSH" = "true" ] && PKGS="$PKGS openssh"
-# post-install hooks use unshare which fails outside a container; packages install fine anyway
-apk add --root "$ROOTFS" --no-cache $PKGS || true
+# Some host/container environments reject the mount-namespace unshare used by
+# APK hooks. APK can still lay down package files; keep this warning visible.
+if ! apk add --root "$ROOTFS" --no-cache $PKGS; then
+  echo "warning: apk reported package-hook errors; checking requested packages..." >&2
+  for pkg in $PKGS; do
+    apk --root "$ROOTFS" info -e "$pkg" >/dev/null 2>&1 ||
+      die "required package '$pkg' was not installed"
+  done
+fi
 
 # --- ROCKNIX modules and firmware ---
 echo "Installing kernel modules and firmware..."
@@ -62,10 +69,10 @@ in_chroot "ln -sf /usr/share/zoneinfo/$TIMEZONE /etc/localtime"
 echo "$TIMEZONE" > "$ROOTFS/etc/timezone"
 
 # --- Users ---
-printf 'root:%s\n' "$ROOT_PASSWORD" | chroot "$ROOTFS" chpasswd
+printf 'root:%s\n' "$ROOT_PASSWORD" | in_chroot "chpasswd"
 
 in_chroot "adduser -D -s /bin/sh $DEFAULT_USER"
-printf '%s:%s\n' "$DEFAULT_USER" "$DEFAULT_PASSWORD" | chroot "$ROOTFS" chpasswd
+printf '%s:%s\n' "$DEFAULT_USER" "$DEFAULT_PASSWORD" | in_chroot "chpasswd"
 
 if [ "$DEFAULT_USER_WHEEL" = "true" ]; then
   in_chroot "adduser $DEFAULT_USER wheel"
