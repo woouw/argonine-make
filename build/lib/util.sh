@@ -18,7 +18,7 @@ in_chroot() {
   local qemu="${QEMU_AARCH64:-$(command -v qemu-aarch64-static 2>/dev/null || command -v qemu-aarch64 2>/dev/null || true)}"
   [ -n "$proot" ] || die "proot not found — install it with: apk add proot"
   [ -n "$qemu" ] || die "QEMU AArch64 user emulator not found — install it with: apk add qemu-aarch64"
-  "$proot" -q "$qemu" -r "$ROOTFS" /bin/sh -c "$command"
+  "$proot" -q "$qemu" -r "$ROOTFS" -w / /bin/sh -c "$command"
 }
 
 in_chroot_exec() {
@@ -28,7 +28,7 @@ in_chroot_exec() {
   local qemu="${QEMU_AARCH64:-$(command -v qemu-aarch64-static 2>/dev/null || command -v qemu-aarch64 2>/dev/null || true)}"
   [ -n "$proot" ] || die "proot not found — install it with: apk add proot"
   [ -n "$qemu" ] || die "QEMU AArch64 user emulator not found — install it with: apk add qemu-aarch64"
-  "$proot" -q "$qemu" -r "$ROOTFS" "$binary" "$@"
+  "$proot" -q "$qemu" -r "$ROOTFS" -w / "$binary" "$@"
 }
 
 fetch() {
