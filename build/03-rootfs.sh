@@ -83,10 +83,11 @@ fi
 install -m644 "$TOP/overlay/etc/doas.conf" "$ROOTFS/etc/doas.conf"
 
 # --- fstab ---
-PARTUUID_BOOT="$(printf '%08x' "$DISK_ID")-01"
+# Use filesystem labels: this image does not run udev, so /dev/disk/by-partuuid
+# symlinks are not guaranteed to exist on the handheld.
 cat > "$ROOTFS/etc/fstab" <<EOF
-PARTUUID=$PARTUUID_ROOT  /       ext4  defaults,noatime  0 1
-PARTUUID=$PARTUUID_BOOT  /boot   vfat  defaults,noatime  0 2
+LABEL=$ROOT_LABEL  /       ext4  defaults,noatime  0 1
+LABEL=$BOOT_LABEL  /boot   vfat  defaults,noatime  0 2
 EOF
 
 # --- kernel modules to load at boot ---
