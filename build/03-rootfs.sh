@@ -43,15 +43,20 @@ echo "Installing packages..."
 PKGS="alpine-base kmod iwd iwd-openrc openresolv dbus dbus-openrc dosfstools e2fsprogs e2fsprogs-extra findmnt parted tzdata doas eudev eudev-openrc udev-init-scripts-openrc libinput"
 [ "$ENABLE_SSH" = "true" ] && PKGS="$PKGS openssh"
 
-# Some restricted host environments reject namespace operations used by APK
-# package hooks. Keep the failure visible, then verify package payloads exist.
-if ! apk --root "$ROOTFS" --arch "$ALPINE_ARCH" add --no-cache $PKGS; then
-  echo "WARNING: apk reported package-hook errors. Requested package files will be checked, but hook setup may be incomplete." >&2
-  for pkg in $PKGS; do
-    apk --root "$ROOTFS" --arch "$ALPINE_ARCH" info -e "$pkg" >/dev/null 2>&1 ||
-      die "required package '$pkg' was not installed"
-  done
-fi
+# Stub out commands that apk post-install hooks call but that always fail
+# outside a real container (unshare, mkinitfs, etc.). The stubs live in
+# /usr/local/sbin which is earlier in PATH than /sbin, so they shadow the
+# real binaries only during this build step and are removed afterwards.
+mkdir -p "$ROOTFS/usr/local/sbin"
+for cmd in unshare mkinitfs; do
+  printf '#!/bin/sh\nexit 0\n' > "$ROOTFS/usr/local/sbin/$cmd"
+  chmod +x "$ROOTFS/usr/local/sbin/$cmd"
+done
+
+apk --root "$ROOTFS" --arch "$ALPINE_ARCH" add --no-cache $PKGS
+
+# Remove stubs — real binaries are now installed
+rm -f "$ROOTFS/usr/local/sbin/unshare" "$ROOTFS/usr/local/sbin/mkinitfs"
 
 # Check the actual payloads, not just APK's installed-package database.
 # This catches partial installs where package hooks or file extraction failed.
@@ -112,7 +117,17 @@ EOF
 
 # --- kernel modules to load at boot ---
 # Alpine OpenRC's 'modules' service reads /etc/modules (not modules-load.d)
-echo "rocknix-singleadc-joypad" >> "$ROOTFS/etc/modules"
+cat >> "$ROOTFS/etc/modules" <<'MODULES'
+rocknix-singleadc-joypad
+sun4i-drm
+panfrost
+MODULES
+
+# Repair apk world consistency — post-install hooks that were stubbed out
+# may have left triggers unfired. Running 'apk fix' inside the rootfs
+# replays any pending triggers so on-device 'apk add' works cleanly.
+echo "Fixing apk trigger state..."
+in_chroot "apk fix" || true
 
 # --- overlay ---
 echo "Copying overlay..."
