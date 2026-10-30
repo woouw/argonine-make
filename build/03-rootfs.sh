@@ -40,7 +40,7 @@ EOF
 
 # --- Install packages ---
 echo "Installing packages..."
-PKGS="alpine-base kmod iwd dbus dosfstools e2fsprogs e2fsprogs-extra findmnt parted tzdata doas"
+PKGS="alpine-base kmod iwd openresolv dbus dosfstools e2fsprogs e2fsprogs-extra findmnt parted tzdata doas"
 [ "$ENABLE_SSH" = "true" ] && PKGS="$PKGS openssh"
 
 # Some restricted host environments reject namespace operations used by APK
