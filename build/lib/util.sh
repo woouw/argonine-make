@@ -11,9 +11,18 @@ assert_rocknix() {
 }
 
 in_chroot() {
-  # Run the target AArch64 shell explicitly through QEMU. This avoids
-  # requiring host binfmt_misc registration for cross-architecture chroots.
-  chroot "$ROOTFS" /usr/bin/qemu-aarch64-static /bin/sh -c "$1"
+  # Run the target BusyBox shell directly through host QEMU. Do not chroot
+  # first: without binfmt_misc, the kernel cannot launch AArch64 child binaries.
+  local qemu="${QEMU_AARCH64:-$(command -v qemu-aarch64-static 2>/dev/null || command -v qemu-aarch64 2>/dev/null)}"
+  "$qemu" -L "$ROOTFS" "$ROOTFS/bin/busybox" sh -c "$1"
+}
+
+in_chroot_exec() {
+  # Run a standalone AArch64 executable from the target rootfs via host QEMU.
+  local binary="$1"
+  shift
+  local qemu="${QEMU_AARCH64:-$(command -v qemu-aarch64-static 2>/dev/null || command -v qemu-aarch64 2>/dev/null)}"
+  "$qemu" -L "$ROOTFS" "$ROOTFS$binary" "$@"
 }
 
 fetch() {
