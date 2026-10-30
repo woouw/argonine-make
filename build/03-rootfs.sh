@@ -43,20 +43,41 @@ echo "Installing packages..."
 PKGS="alpine-base kmod iwd iwd-openrc openresolv dbus dbus-openrc dosfstools e2fsprogs e2fsprogs-extra findmnt parted tzdata doas eudev eudev-openrc udev-init-scripts-openrc libinput"
 [ "$ENABLE_SSH" = "true" ] && PKGS="$PKGS openssh"
 
-# Stub out commands that apk post-install hooks call but that always fail
-# outside a real container (unshare, mkinitfs, etc.). The stubs live in
-# /usr/local/sbin which is earlier in PATH than /sbin, so they shadow the
-# real binaries only during this build step and are removed afterwards.
-mkdir -p "$ROOTFS/usr/local/sbin"
-for cmd in unshare mkinitfs; do
-  printf '#!/bin/sh\nexit 0\n' > "$ROOTFS/usr/local/sbin/$cmd"
-  chmod +x "$ROOTFS/usr/local/sbin/$cmd"
+# apk post-install hooks call unshare via absolute path (/usr/bin/unshare).
+# Outside a real container this always fails. Stub it out at the exact path
+# apk will call, then restore after install.
+mkdir -p "$ROOTFS/usr/bin" "$ROOTFS/bin" "$ROOTFS/sbin" "$ROOTFS/usr/sbin"
+STUB='#!/bin/sh
+exit 0'
+for stub_path in \
+    "$ROOTFS/usr/bin/unshare" \
+    "$ROOTFS/bin/unshare" \
+    "$ROOTFS/usr/sbin/unshare" \
+    "$ROOTFS/sbin/unshare"; do
+  printf '%s\n' "$STUB" > "$stub_path"
+  chmod +x "$stub_path"
 done
 
-apk --root "$ROOTFS" --arch "$ALPINE_ARCH" add --no-cache $PKGS
+apk --root "$ROOTFS" --arch "$ALPINE_ARCH" add --no-cache $PKGS || {
+  # apk exits non-zero when any hook fails; check every package was installed
+  FAILED=
+  for pkg in $PKGS; do
+    apk --root "$ROOTFS" --arch "$ALPINE_ARCH" info -e "$pkg" >/dev/null 2>&1 \
+      || FAILED="$FAILED $pkg"
+  done
+  [ -z "$FAILED" ] || die "packages not installed:$FAILED"
+  echo "All packages installed (hook errors above are expected outside a container)"
+}
 
-# Remove stubs — real binaries are now installed
-rm -f "$ROOTFS/usr/local/sbin/unshare" "$ROOTFS/usr/local/sbin/mkinitfs"
+# Restore real unshare now that util-linux is installed
+for stub_path in \
+    "$ROOTFS/usr/bin/unshare" \
+    "$ROOTFS/bin/unshare" \
+    "$ROOTFS/usr/sbin/unshare" \
+    "$ROOTFS/sbin/unshare"; do
+  # Only remove if it's still our stub (size <20 bytes)
+  [ "$(wc -c < "$stub_path" 2>/dev/null || echo 999)" -lt 20 ] && rm -f "$stub_path"
+done
 
 # Check the actual payloads, not just APK's installed-package database.
 # This catches partial installs where package hooks or file extraction failed.
