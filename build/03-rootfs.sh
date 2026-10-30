@@ -25,7 +25,7 @@ fi
 # --- Alpine minirootfs ---
 mkdir -p "$ROCKNIX_DL"
 ALPINE_TAR="$ROCKNIX_DL/alpine-minirootfs-${ALPINE_VERSION}-${ALPINE_ARCH}.tar.gz"
-fetch "$ALPINE_URL" "$ALPINE_TAR"   # no checksum pinned yet; add ALPINE_SHA256 to config.sh
+fetch "$ALPINE_URL" "$ALPINE_TAR" "$ALPINE_SHA256"
 
 rm -rf "$ROOTFS"
 mkdir -p "$ROOTFS"
@@ -40,18 +40,26 @@ EOF
 
 # --- Install packages ---
 echo "Installing packages..."
-PKGS="alpine-base kmod iwd openresolv dbus dosfstools e2fsprogs e2fsprogs-extra findmnt parted tzdata doas"
+PKGS="alpine-base kmod iwd iwd-openrc openresolv dbus dbus-openrc dosfstools e2fsprogs e2fsprogs-extra findmnt parted tzdata doas"
 [ "$ENABLE_SSH" = "true" ] && PKGS="$PKGS openssh"
 
 # Some restricted host environments reject namespace operations used by APK
 # package hooks. Keep the failure visible, then verify package payloads exist.
-if ! apk add --root "$ROOTFS" --no-cache $PKGS; then
+if ! apk --root "$ROOTFS" --arch "$ALPINE_ARCH" add --no-cache $PKGS; then
   echo "WARNING: apk reported package-hook errors. Requested package files will be checked, but hook setup may be incomplete." >&2
   for pkg in $PKGS; do
-    apk --root "$ROOTFS" info -e "$pkg" >/dev/null 2>&1 ||
+    apk --root "$ROOTFS" --arch "$ALPINE_ARCH" info -e "$pkg" >/dev/null 2>&1 ||
       die "required package '$pkg' was not installed"
   done
 fi
+
+# Check the actual payloads, not just APK's installed-package database.
+# This catches partial installs where package hooks or file extraction failed.
+in_chroot "command -v iwctl >/dev/null 2>&1 && command -v resolvconf >/dev/null 2>&1" ||
+  die "iwd client (iwctl) or resolver helper (resolvconf) is missing"
+[ -x "$ROOTFS/usr/libexec/iwd" ] || die "iwd daemon binary is missing"
+[ -f "$ROOTFS/etc/init.d/iwd" ] || die "iwd OpenRC service is missing"
+[ -f "$ROOTFS/etc/init.d/dbus" ] || die "D-Bus OpenRC service is missing"
 
 # --- ROCKNIX modules and firmware ---
 echo "Installing kernel modules and firmware..."
