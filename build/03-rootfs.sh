@@ -54,12 +54,12 @@ fi
 
 # --- ROCKNIX modules and firmware ---
 echo "Installing kernel modules and firmware..."
-mkdir -p "$ROOTFS/usr/lib/modules" "$ROOTFS/usr/lib/firmware"
-rsync -a "$ROCKNIX_EX/modules/$KVER/" "$ROOTFS/usr/lib/modules/$KVER/"
-rsync -a "$ROCKNIX_EX/firmware/" "$ROOTFS/usr/lib/firmware/"
+mkdir -p "$ROOTFS/lib/modules" "$ROOTFS/lib/firmware"
+rsync -a "$ROCKNIX_EX/modules/$KVER/" "$ROOTFS/lib/modules/$KVER/"
+rsync -a "$ROCKNIX_EX/firmware/" "$ROOTFS/lib/firmware/"
 
 echo "Running depmod..."
-in_chroot_exec /sbin/depmod -a "$KVER"
+in_chroot "depmod -a $KVER"
 
 # --- Hostname ---
 echo "$HOSTNAME" > "$ROOTFS/etc/hostname"
