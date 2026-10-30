@@ -85,9 +85,6 @@ in_chroot "addgroup -S messagebus 2>/dev/null || true"
 in_chroot "adduser -S -D -H -h /var/run/dbus -s /sbin/nologin -G messagebus messagebus 2>/dev/null || true"
 in_chroot "mkdir -p /var/run/dbus /var/lib/dbus && dbus-uuidgen --ensure=/etc/machine-id"
 
-# --- doas ---
-install -m644 "$TOP/overlay/etc/doas.conf" "$ROOTFS/etc/doas.conf"
-
 # --- fstab ---
 # Use filesystem labels: this image does not run udev, so /dev/disk/by-partuuid
 # symlinks are not guaranteed to exist on the handheld.
@@ -103,5 +100,11 @@ echo "rocknix-singleadc-joypad" >> "$ROOTFS/etc/modules"
 # --- overlay ---
 echo "Copying overlay..."
 cp -a "$TOP/overlay/." "$ROOTFS/"
+
+# doas rejects config files that are not owned by root or are writable
+# by group/others. Enforce this after the overlay copy, which may preserve
+# the host checkout's ownership and permissions.
+chown 0:0 "$ROOTFS/etc/doas.conf"
+chmod 0400 "$ROOTFS/etc/doas.conf"
 
 echo "Done: $ROOTFS"
