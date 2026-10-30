@@ -40,7 +40,7 @@ EOF
 
 # --- Install packages ---
 echo "Installing packages..."
-PKGS="alpine-base kmod iwd e2fsprogs parted tzdata doas"
+PKGS="alpine-base kmod iwd dbus dosfstools e2fsprogs parted tzdata doas"
 [ "$ENABLE_SSH" = "true" ] && PKGS="$PKGS openssh"
 
 # Some restricted host environments reject namespace operations used by APK
@@ -78,6 +78,12 @@ printf '%s:%s\n' "$DEFAULT_USER" "$DEFAULT_PASSWORD" | in_chroot "chpasswd"
 if [ "$DEFAULT_USER_WHEEL" = "true" ]; then
   in_chroot "adduser $DEFAULT_USER wheel"
 fi
+
+# APK package hooks may fail on hosts that cannot create mount namespaces.
+# Ensure the D-Bus service account and machine ID exist even in that case.
+in_chroot "addgroup -S messagebus 2>/dev/null || true"
+in_chroot "adduser -S -D -H -h /var/run/dbus -s /sbin/nologin -G messagebus messagebus 2>/dev/null || true"
+in_chroot "mkdir -p /var/run/dbus /var/lib/dbus && dbus-uuidgen --ensure=/etc/machine-id"
 
 # --- doas ---
 install -m644 "$TOP/overlay/etc/doas.conf" "$ROOTFS/etc/doas.conf"
