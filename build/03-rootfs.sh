@@ -109,9 +109,10 @@ in_chroot "mkdir -p /var/run/dbus /var/lib/dbus && dbus-uuidgen --ensure=/etc/ma
 # --- fstab ---
 # Labels are used as a fallback; eudev provides device discovery and symlinks.
 cat > "$ROOTFS/etc/fstab" <<EOF
-LABEL=$ROOT_LABEL  /       ext4  defaults,noatime  0 1
-LABEL=$BOOT_LABEL  /boot   vfat  defaults,noatime  0 2
+LABEL=$ROOT_LABEL   /      ext4  defaults,noatime  0 1
+LABEL=$BOOT_LABEL   /boot  vfat  defaults,noatime  0 2
 EOF
+[ -n "${SWP_PART:-}" ] && echo "LABEL=rg35xxh-swap  none   swap  sw              0 0" >> "$ROOTFS/etc/fstab"
 
 # --- kernel modules to load at boot ---
 # Alpine OpenRC's 'modules' service reads /etc/modules (not modules-load.d)
