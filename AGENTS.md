@@ -32,6 +32,8 @@ overlay/
   etc/init.d/rg35xxh-resize   first-boot partition resize, self-destructs after success
   etc/init.d/rg35xxh-sysfs    early sysfs mount
   etc/udev/rules.d/70-rg35xxh-device-access.rules
+src/
+  pinpad/             ABXY gamepad PIN login gate (pinpad + pinpad-set, C + Makefile)
 boot-files/
   panel.txt           panel identifier placed on FAT partition
 local.env.example     copy to local.env and edit; gitignored
@@ -79,6 +81,17 @@ All settings live in `build/config.sh` with `${VAR:-default}` so env vars overri
 - Modules `sun4i-drm` and `panfrost` must be loaded for Wayland/sway to work. They're in `/etc/modules` so OpenRC loads them at boot.
 - sway also needs elogind running and the user in the `video`, `input`, `render` groups — all handled at build time.
 - `WLR_DRM_DEVICES=/dev/dri/card1` may be needed if wlroots picks the wrong card (card0 = display engine on this SoC, card1 = Mali).
+
+## src/pinpad
+
+ABXY gamepad PIN login gate. Two programs:
+
+- `pinpad` — login gate; autologin runs this instead of a shell. Reads `~/.pinpad` (yescrypt hash), prompts for button sequence (terminated by Start), on success execs `login -f <user>` for a proper PAM session. 3 wrong attempts → 30s cooldown. No `~/.pinpad` → drops straight to shell (first boot / no PIN set).
+- `pinpad-set` — set or change the PIN. Prompts twice for confirmation, hashes with yescrypt, writes `~/.pinpad` (0600).
+
+PIN is a variable-length ABXY sequence. Each press echoes `*`, Start confirms. Stored as a yescrypt hash (slow, GPU-resistant). Build: `make CC=aarch64-linux-musl-gcc` on host, or `apk add build-base libxcrypt-dev && make` on-device. The build step `06-pinpad.sh` cross-compiles and installs into rootfs if a cross compiler is found; otherwise drops source into `/usr/local/src/pinpad/` for on-device build.
+
+agetty on tty0 autologins as `$DEFAULT_USER` with `pinpad` as the login program (`agetty_login_program`). ttyS0 (serial) is unchanged — no autologin.
 
 ## What's planned
 
