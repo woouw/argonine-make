@@ -34,10 +34,9 @@ enable_service agetty.ttyS0 default
 
 # Configure agetty for each tty
 mkdir -p "$ROOTFS/etc/conf.d"
-cat > "$ROOTFS/etc/conf.d/agetty.tty0" <<EOF
+cat > "$ROOTFS/etc/conf.d/agetty.tty0" <<'EOF'
 agetty_tty=tty0
-agetty_options="-8 --noclear --autologin $DEFAULT_USER"
-agetty_login_program=/usr/local/bin/pinpad
+agetty_options="-8 --noclear"
 EOF
 
 cat > "$ROOTFS/etc/conf.d/agetty.ttyS0" <<'EOF'
