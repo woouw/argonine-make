@@ -33,24 +33,9 @@ cp "$TOP/boot-files/panel.txt" "$P/boot/panel.txt"
 ROOT_USED_MIB=$(du -smx "$ROOTFS" | cut -f1)
 ROOT_SIZE_MIB=$(( (ROOT_USED_MIB * 125 / 100 + 256 + 63) / 64 * 64 ))
 
-# Parse SWP_PART (e.g. "512M" or "2G") into MiB
-SWP_SIZE_MIB=0
-if [ -n "${SWP_PART:-}" ]; then
-  _swp_num="${SWP_PART%[MmGg]}"
-  _swp_unit="${SWP_PART##"$_swp_num"}"
-  case "$_swp_unit" in
-    M|m) SWP_SIZE_MIB="$_swp_num" ;;
-    G|g) SWP_SIZE_MIB=$(( _swp_num * 1024 )) ;;
-    *) die "SWP_PART: invalid format '$SWP_PART' — use e.g. 512M or 2G" ;;
-  esac
-fi
-
-TOTAL_MIB=$(( BOOT_START_MIB + BOOT_SIZE_MIB + ROOT_SIZE_MIB + SWP_SIZE_MIB + 1 ))
-if [ "$SWP_SIZE_MIB" -gt 0 ]; then
-  echo "rootfs ${ROOT_USED_MIB} MiB → root partition ${ROOT_SIZE_MIB} MiB, swap ${SWP_SIZE_MIB} MiB, image ${TOTAL_MIB} MiB"
-else
-  echo "rootfs ${ROOT_USED_MIB} MiB → root partition ${ROOT_SIZE_MIB} MiB, image ${TOTAL_MIB} MiB"
-fi
+TOTAL_MIB=$(( BOOT_START_MIB + BOOT_SIZE_MIB + ROOT_SIZE_MIB + 1 ))
+echo "rootfs ${ROOT_USED_MIB} MiB → root partition ${ROOT_SIZE_MIB} MiB, image ${TOTAL_MIB} MiB"
+# Swap partition is created at first boot by rg35xxh-resize (SWP_PART config).
 
 VER="$(date +%Y%m%d)"
 IMG="$OUT/rg35xxh-alpine-${PANEL}-${VER}.img"
@@ -69,36 +54,16 @@ e2fsck -fn "$P/root.ext4" >/dev/null
 # --- assemble ---
 truncate -s "${TOTAL_MIB}M" "$IMG.part"
 
-if [ "$SWP_SIZE_MIB" -gt 0 ]; then
-  PARTUUID_SWAP="$(printf '%08x' "$DISK_ID")-03"
-  sfdisk -q "$IMG.part" <<EOF
-label: dos
-label-id: $DISK_ID
-start=$(( BOOT_START_MIB * 2048 )), size=$(( BOOT_SIZE_MIB * 2048 )), type=c, bootable
-start=$(( (BOOT_START_MIB + BOOT_SIZE_MIB) * 2048 )), size=$(( ROOT_SIZE_MIB * 2048 )), type=83
-start=$(( (BOOT_START_MIB + BOOT_SIZE_MIB + ROOT_SIZE_MIB) * 2048 )), size=$(( SWP_SIZE_MIB * 2048 )), type=82
-EOF
-else
-  sfdisk -q "$IMG.part" <<EOF
+sfdisk -q "$IMG.part" <<EOF
 label: dos
 label-id: $DISK_ID
 start=$(( BOOT_START_MIB * 2048 )), size=$(( BOOT_SIZE_MIB * 2048 )), type=c, bootable
 start=$(( (BOOT_START_MIB + BOOT_SIZE_MIB) * 2048 )), size=$(( ROOT_SIZE_MIB * 2048 )), type=83
 EOF
-fi
 
 dd if="$ROCKNIX_EX/bootloader/u-boot-sunxi-with-spl.bin" of="$IMG.part" bs=1024 seek=8 conv=notrunc status=none
 dd if="$P/boot.vfat" of="$IMG.part" bs=1M seek="$BOOT_START_MIB" conv=notrunc status=none
 dd if="$P/root.ext4" of="$IMG.part" bs=1M seek=$(( BOOT_START_MIB + BOOT_SIZE_MIB )) conv=notrunc status=none
-
-# Format swap partition in-place using a loop device
-if [ "$SWP_SIZE_MIB" -gt 0 ]; then
-  SWP_OFFSET_BYTES=$(( (BOOT_START_MIB + BOOT_SIZE_MIB + ROOT_SIZE_MIB) * 1024 * 1024 ))
-  SWP_SIZE_BYTES=$(( SWP_SIZE_MIB * 1024 * 1024 ))
-  SWP_DEV="$(losetup --find --show --offset "$SWP_OFFSET_BYTES" --sizelimit "$SWP_SIZE_BYTES" "$IMG.part")"
-  mkswap -L rg35xxh-swap "$SWP_DEV" >/dev/null
-  losetup -d "$SWP_DEV"
-fi
 
 mv "$IMG.part" "$IMG"
 rm -rf "$P"

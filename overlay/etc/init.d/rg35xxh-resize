@@ -1,8 +1,10 @@
 #!/sbin/openrc-run
-# Grow the root partition and filesystem to fill the SD card on first boot.
-# Keep the service enabled if any step fails so it can be retried.
+# First-boot: grow root partition to fill SD card, then optionally
+# create a swap partition in the remaining space.
+# Reads /etc/rg35xxh.conf for SWP_PART (e.g. 512M or 2G).
+# Self-destructs after all steps succeed.
 
-description="Resize root partition to fill SD card (first boot)"
+description="First-boot partition resize and swap setup"
 
 depend() {
     need localmount
@@ -10,31 +12,20 @@ depend() {
 }
 
 start() {
-    ebegin "Resizing root partition to fill SD card"
+    ebegin "First-boot partition setup"
 
-    if ! command -v findmnt >/dev/null 2>&1; then
-        eerror "findmnt is missing"
-        eend 1
-        return 1
-    fi
-    if ! command -v parted >/dev/null 2>&1; then
-        eerror "parted is missing"
-        eend 1
-        return 1
-    fi
-    if ! command -v resize2fs >/dev/null 2>&1; then
-        eerror "resize2fs is missing (install e2fsprogs-extra)"
-        eend 1
-        return 1
-    fi
+    for cmd in findmnt parted resize2fs mkswap; do
+        if ! command -v "$cmd" >/dev/null 2>&1; then
+            eerror "$cmd is missing"
+            eend 1; return 1
+        fi
+    done
 
     ROOT_DEV="$(findmnt -n -o SOURCE /)" || {
         eerror "could not determine root block device"
-        eend 1
-        return 1
+        eend 1; return 1
     }
 
-    # This image uses an MMC partition such as /dev/mmcblk0p2.
     case "$ROOT_DEV" in
         /dev/mmcblk*p[0-9]*)
             PART_NUM="${ROOT_DEV##*p}"
@@ -42,36 +33,92 @@ start() {
             ;;
         *)
             eerror "unexpected root device: $ROOT_DEV"
-            eend 1
-            return 1
+            eend 1; return 1
             ;;
     esac
 
     if [ ! -b "$ROOT_DEV" ] || [ ! -b "$DISK" ]; then
-        eerror "root device or parent disk does not exist: $ROOT_DEV / $DISK"
-        eend 1
-        return 1
+        eerror "root or disk device missing: $ROOT_DEV / $DISK"
+        eend 1; return 1
     fi
 
-    # Parted warns and asks for confirmation when the root partition is
-    # mounted. In OpenRC boot, stdin is not an interactive terminal, and
-    # -s can make that confirmation fail. Pretend stdin is a tty and feed
-    # the explicit affirmative response; retain Parted's actual error.
-    if ! printf 'Yes\n' | parted ---pretend-input-tty "$DISK" resizepart "$PART_NUM" 100%; then
-        eerror "failed to extend root partition (parted returned failure; see output above)"
-        eend 1
-        return 1
+    # --- Read first-boot config ---
+    SWP_PART=""
+    [ -f /etc/rg35xxh.conf ] && . /etc/rg35xxh.conf
+
+    # --- Parse SWP_PART ---
+    SWP_SIZE_MIB=0
+    if [ -n "$SWP_PART" ]; then
+        _num="${SWP_PART%[MmGgBb]*}"
+        _unit="${SWP_PART#"$_num"}"
+        case "$_unit" in
+            M|m|MB|mb) SWP_SIZE_MIB="$_num" ;;
+            G|g|GB|gb) SWP_SIZE_MIB=$(( _num * 1024 )) ;;
+            *)
+                ewarn "SWP_PART: invalid format '$SWP_PART' — skipping swap"
+                SWP_SIZE_MIB=0
+                ;;
+        esac
+    fi
+
+    # --- Grow root partition ---
+    # If swap is requested, leave room for it; otherwise take 100%.
+    if [ "$SWP_SIZE_MIB" -gt 0 ]; then
+        # Disk size in MiB
+        DISK_SIZE_MIB=$(( $(blockdev --getsize64 "$DISK") / 1024 / 1024 ))
+        ROOT_END_MIB=$(( DISK_SIZE_MIB - SWP_SIZE_MIB - 1 ))
+        ROOT_END="${ROOT_END_MIB}MiB"
+        einfo "Resizing root to ${ROOT_END_MIB} MiB, reserving ${SWP_SIZE_MIB} MiB for swap"
+    else
+        ROOT_END="100%"
+    fi
+
+    if ! printf 'Yes\n' | parted ---pretend-input-tty "$DISK" resizepart "$PART_NUM" "$ROOT_END"; then
+        eerror "failed to extend root partition"
+        eend 1; return 1
     fi
 
     if ! resize2fs "$ROOT_DEV"; then
         eerror "failed to grow root filesystem"
-        eend 1
-        return 1
+        eend 1; return 1
+    fi
+
+    # --- Create swap partition ---
+    if [ "$SWP_SIZE_MIB" -gt 0 ]; then
+        SWP_PART_NUM=$(( PART_NUM + 1 ))
+        SWP_DEV="${DISK}p${SWP_PART_NUM}"
+        einfo "Creating swap partition ${SWP_DEV} (${SWP_SIZE_MIB} MiB)"
+
+        if ! printf 'Yes\n' | parted ---pretend-input-tty "$DISK" \
+                mkpart primary linux-swap "${ROOT_END_MIB}MiB" "100%"; then
+            eerror "failed to create swap partition"
+            eend 1; return 1
+        fi
+
+        # Wait for kernel to see the new partition
+        sleep 1
+        if [ ! -b "$SWP_DEV" ]; then
+            partprobe "$DISK" 2>/dev/null || true
+            sleep 1
+        fi
+
+        if ! mkswap -L rg35xxh-swap "$SWP_DEV"; then
+            eerror "failed to format swap partition"
+            eend 1; return 1
+        fi
+
+        # Add fstab entry if not already present
+        if ! grep -q 'rg35xxh-swap' /etc/fstab; then
+            echo "LABEL=rg35xxh-swap  none  swap  sw  0 0" >> /etc/fstab
+        fi
+
+        swapon -a || ewarn "swapon failed (will be active on next boot)"
+        einfo "Swap enabled"
     fi
 
     eend 0
 
-    # Only disable the one-shot service after both operations succeed.
+    # Self-destruct only after all steps succeed
     rc-update del rg35xxh-resize boot
     rm -f /etc/init.d/rg35xxh-resize
     return 0

@@ -112,7 +112,7 @@ cat > "$ROOTFS/etc/fstab" <<EOF
 LABEL=$ROOT_LABEL   /      ext4  defaults,noatime  0 1
 LABEL=$BOOT_LABEL   /boot  vfat  defaults,noatime  0 2
 EOF
-[ -n "${SWP_PART:-}" ] && echo "LABEL=rg35xxh-swap  none   swap  sw              0 0" >> "$ROOTFS/etc/fstab"
+# Swap fstab line is added at first-boot by rg35xxh-resize if SWP_PART is set.
 
 # --- kernel modules to load at boot ---
 # Alpine OpenRC's 'modules' service reads /etc/modules (not modules-load.d)
@@ -127,6 +127,13 @@ MODULES
 # replays any pending triggers so on-device 'apk add' works cleanly.
 echo "Fixing apk trigger state..."
 in_chroot "apk fix" || true
+
+# --- first-boot config ---
+# Written into the rootfs so rg35xxh-resize can read it at first boot.
+cat > "$ROOTFS/etc/rg35xxh.conf" <<EOF
+# First-boot configuration — do not edit after first boot.
+SWP_PART="${SWP_PART:-}"
+EOF
 
 # --- overlay ---
 echo "Copying overlay..."
