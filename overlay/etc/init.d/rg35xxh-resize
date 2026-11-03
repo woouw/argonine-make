@@ -107,12 +107,13 @@ start() {
             eend 1; return 1
         fi
 
-        # Add fstab entry if not already present
-        if ! grep -q 'rg35xxh-swap' /etc/fstab; then
-            echo "LABEL=rg35xxh-swap  none  swap  sw  0 0" >> /etc/fstab
-        fi
+        # Use the device path, not LABEL=: the partition was created mid-boot
+        # and udev/blkid may not have indexed the label yet. The partition
+        # number is fixed by the image layout, so the path is stable.
+        sed -i '/rg35xxh-swap/d' /etc/fstab
+        echo "$SWP_DEV  none  swap  sw  0 0" >> /etc/fstab
 
-        swapon -a || ewarn "swapon failed (will be active on next boot)"
+        swapon "$SWP_DEV" || ewarn "swapon failed (will be active on next boot)"
         einfo "Swap enabled"
     fi
 
