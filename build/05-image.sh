@@ -38,7 +38,7 @@ echo "rootfs ${ROOT_USED_MIB} MiB → root partition ${ROOT_SIZE_MIB} MiB, image
 # Swap partition is created at first boot by rg35xxh-resize (SWP_PART config).
 
 VER="$(date +%Y%m%d)"
-IMG="$OUT/rg35xxh-alpine-${PANEL}-${VER}.img"
+IMG="$OUT/argonine-rg35xxh-${PANEL}-${VER}.img"
 
 # --- FAT boot partition ---
 mkfs.vfat -F 32 -n "$BOOT_LABEL" -C "$P/boot.vfat" $(( BOOT_SIZE_MIB * 1024 )) >/dev/null

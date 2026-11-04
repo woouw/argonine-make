@@ -4,7 +4,15 @@ Context for AI agents working on this repo.
 
 ## What this is
 
-Minimal Alpine Linux image for the Anbernic RG35XX H handheld (Allwinner H700, quad Cortex-A53, aarch64). Boots to a TTY with Wi-Fi ready. No desktop by default. The hardware layer (kernel, U-Boot, DTBs, firmware) is reused from a ROCKNIX release — nothing is compiled from source.
+**Argonine** — a build system that produces a minimal Alpine Linux image for the Anbernic RG35XX H handheld (Allwinner H700, quad Cortex-A53, aarch64). Boots to a TTY with Wi-Fi ready. No desktop by default. The hardware layer (kernel, U-Boot, DTBs, firmware) is reused from a ROCKNIX release — nothing is compiled from source.
+
+## Naming and scope
+
+- Project name: **Argonine** (lowercase `argonine` for repos/files). Not a distro and not a fork: it assembles upstream Alpine for Anbernic RG hardware. Do not describe it as a distro.
+- Goal: turn the handheld into a cyberdeck / pocket Linux computer. Not a gaming frontend; no launcher.
+- This repo is only the OS image build. Components live in their own repos (`argonine-inputd`, `argonine-pinpad`), not under `src/`.
+- Image files are named `argonine-<device>-<panel>-<date>.img[.xz]`. Internal labels (`rg35xxh-root`, `RG35XXHBOOT`, `rg35xxh-swap`) are unchanged on purpose.
+- The repo directory/GitHub name may still read `All-Linux-OS-rg35xxh` until it is renamed.
 
 ## Hardware
 
@@ -82,4 +90,6 @@ All settings live in `build/config.sh` with `${VAR:-default}` so env vars overri
 
 ## What's planned
 
-- Configurable C input daemon: maps hardware buttons to keyboard/mouse events via uinput. Architecture discussed but not started. Will live in `src/inputd/`.
+- `argonine-inputd` (separate repo): maps hardware buttons to keyboard/mouse events via uinput; to be installed into the image by the build.
+- `argonine-pinpad` (separate repo, parked on branch `wip/pinpad`): button-sequence PIN login.
+- Multi-device support: add a device case to `config.sh` mapping to the right ROCKNIX image and DTB.
