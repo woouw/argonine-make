@@ -67,4 +67,4 @@ boot-files/     files placed on the FAT boot partition
 ## Companion projects
 
 - **argonine-inputd** — gamepad/volume/power to keyboard + mouse daemon
-- **argonine-pinpad** — button-sequence PIN login (in progress)
+- **argonine-locker** — button-sequence PIN lock/login (upcoming)

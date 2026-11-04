@@ -11,9 +11,9 @@ Context for AI agents working on this repo.
 - Argonine is "an effort to make a handheld framework for computing". This repo builds its base OS image; companion repos add the rest of the framework.
 - Project name: **Argonine** (lowercase `argonine` for repos/files). Not a distro and not a fork: it assembles upstream Alpine for Anbernic RG hardware. Do not describe it as a distro.
 - Goal: turn the handheld into a cyberdeck / pocket Linux computer. Not a gaming frontend; no launcher.
-- This repo is only the OS image build. Components live in their own repos (`argonine-inputd`, `argonine-pinpad`), not under `src/`.
+- This repo is only the OS image build. Components live in their own repos (`argonine-inputd`, `argonine-locker`), not under `src/`.
 - Image files are named `argonine-<device>-<panel>-<date>.img[.xz]`. Internal labels (`rg35xxh-root`, `RG35XXHBOOT`, `rg35xxh-swap`) are unchanged on purpose.
-- The repo directory/GitHub name may still read `All-Linux-OS-rg35xxh` until it is renamed.
+- Repos: `argonine-make` (this one, the OS image build), `argonine-inputd`, and the upcoming `argonine-locker`. The local checkout directory may still be named `all-linux-os-rg35xxh`.
 
 ## Hardware
 
@@ -92,5 +92,5 @@ All settings live in `build/config.sh` with `${VAR:-default}` so env vars overri
 ## What's planned
 
 - `argonine-inputd` (separate repo): maps hardware buttons to keyboard/mouse events via uinput; to be installed into the image by the build.
-- `argonine-pinpad` (separate repo, parked on branch `wip/pinpad`): button-sequence PIN login.
+- `argonine-locker` (separate repo, not created yet; prototype parked on branch `wip/pinpad`, formerly called pinpad): button-sequence PIN lock/login.
 - Multi-device support: add a device case to `config.sh` mapping to the right ROCKNIX image and DTB.
