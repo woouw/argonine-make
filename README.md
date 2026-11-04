@@ -1,8 +1,10 @@
 # Argonine
 
-Alpine Linux for Anbernic RG handhelds — turn the handheld into a pocket cyberdeck.
+Argonine is an effort to make a handheld framework for computing.
 
-Argonine is not a new distro. It is a build system that assembles stock Alpine Linux for hardware nobody else supports properly: boot to a TTY, Wi-Fi (iwd) ready, `apk add` whatever you want. The hardware layer is borrowed from ROCKNIX; everything else is upstream Alpine.
+This repo builds its base: Alpine Linux for Anbernic RG handhelds, turning the handheld into a pocket cyberdeck.
+
+The base is not a new distro. It is a build system that assembles stock Alpine Linux for hardware nobody else supports properly: boot to a TTY, Wi-Fi (iwd) ready, `apk add` whatever you want. The hardware layer is borrowed from ROCKNIX; everything else is upstream Alpine.
 
 **Supported devices:** RG35XX H (Allwinner H700). Other H700 RG devices differ mainly in their device tree and should be easy to add.
 

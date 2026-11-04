@@ -8,6 +8,7 @@ Context for AI agents working on this repo.
 
 ## Naming and scope
 
+- Argonine is "an effort to make a handheld framework for computing". This repo builds its base OS image; companion repos add the rest of the framework.
 - Project name: **Argonine** (lowercase `argonine` for repos/files). Not a distro and not a fork: it assembles upstream Alpine for Anbernic RG hardware. Do not describe it as a distro.
 - Goal: turn the handheld into a cyberdeck / pocket Linux computer. Not a gaming frontend; no launcher.
 - This repo is only the OS image build. Components live in their own repos (`argonine-inputd`, `argonine-pinpad`), not under `src/`.
