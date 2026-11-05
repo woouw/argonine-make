@@ -139,6 +139,43 @@ EOF
 echo "Copying overlay..."
 cp -a "$TOP/overlay/." "$ROOTFS/"
 
+# --- Wi-Fi credentials (optional, baked in) ---
+# iwd reads /var/lib/iwd/<ssid>.psk (or .open). SSIDs containing anything
+# outside [A-Za-z0-9 _-] must be named "=" + the SSID in hex.
+if [ -n "${WIFI_SSID:-}" ]; then
+  wifi_ext=open
+  wifi_key=
+  if [ -n "${WIFI_PSK:-}" ]; then
+    wifi_ext=psk
+    if printf '%s' "$WIFI_PSK" | grep -Eq '^[0-9a-fA-F]{64}$'; then
+      wifi_key="PreSharedKey=$WIFI_PSK"
+    elif [ "${#WIFI_PSK}" -ge 8 ] && [ "${#WIFI_PSK}" -le 63 ]; then
+      wifi_key="Passphrase=$WIFI_PSK"
+    else
+      die "WIFI_PSK must be 8-63 characters, or 64 hex digits"
+    fi
+  fi
+
+  if printf '%s' "$WIFI_SSID" | grep -Eq '^[A-Za-z0-9 _-]+$'; then
+    wifi_name="$WIFI_SSID"
+  else
+    wifi_name="=$(printf '%s' "$WIFI_SSID" | od -An -tx1 | tr -d ' \n')"
+  fi
+
+  mkdir -p "$ROOTFS/var/lib/iwd"
+  chmod 0700 "$ROOTFS/var/lib/iwd"
+  (
+    umask 077
+    {
+      [ -n "$wifi_key" ] && printf '[Security]\n%s\n' "$wifi_key"
+      [ "${WIFI_HIDDEN:-false}" = "true" ] && printf '\n[Settings]\nHidden=true\n'
+      true
+    } > "$ROOTFS/var/lib/iwd/${wifi_name}.${wifi_ext}"
+  )
+  echo "Wi-Fi: baked profile for SSID '$WIFI_SSID' (${wifi_ext})"
+  [ "$wifi_ext" = "psk" ] && echo "Wi-Fi: the image contains the passphrase in plaintext - don't share it" || true
+fi
+
 # doas rejects config files that are not owned by root or are writable
 # by group/others. Enforce this after the overlay copy, which may preserve
 # the host checkout's ownership and permissions.

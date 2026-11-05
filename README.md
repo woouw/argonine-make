@@ -54,7 +54,7 @@ Put the card in the **TF1** (left) slot and power on.
 
 Login with the username and password configured in `local.env` (defaults in `build/config.sh`). The sample defaults (`alpine/alpine` and `root/root`) are not safe to keep when SSH is enabled.  
 Run `setup-alpine` to set timezone, locale, keymap etc.  
-Wi-Fi: `iwctl` → `station wlan0 connect <SSID>`.
+Wi-Fi: set `WIFI_SSID` / `WIFI_PSK` in `local.env` before building and the device joins on first boot. The passphrase is stored in plaintext inside the image, so don't share it. Otherwise: `iwctl` → `station wlan0 connect <SSID>`.
 
 ## Layout
 

@@ -45,6 +45,13 @@ ENABLE_SSH="${ENABLE_SSH:-true}"
 MAKE_GZ_IMAGE="${MAKE_GZ_IMAGE:-true}"   # set to false to skip xz compression
 SWP_PART="${SWP_PART:-}"                 # swap partition size e.g. 512M or 2G; created at first boot, not baked into image
 
+# --- Wi-Fi (optional) ---
+# Baked into the image as an iwd profile so the device joins on first boot.
+# The passphrase is stored in plaintext inside the image: don't share the .img.
+WIFI_SSID="${WIFI_SSID:-}"               # empty = no Wi-Fi profile
+WIFI_PSK="${WIFI_PSK:-}"                 # 8-63 chars or 64 hex digits; empty = open network
+WIFI_HIDDEN="${WIFI_HIDDEN:-false}"      # true for a hidden SSID
+
 # --- Image layout ---
 DISK_ID="0x52473335"
 BOOT_START_MIB=16

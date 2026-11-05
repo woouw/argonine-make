@@ -70,6 +70,9 @@ All settings live in `build/config.sh` with `${VAR:-default}` so env vars overri
 | `ENABLE_SSH` | `true` | |
 | `MAKE_GZ_IMAGE` | `true` | set false to skip xz compression during dev iteration |
 | `SWP_PART` | _(empty)_ | swap partition size e.g. `512M` or `2G`; created at first boot (not baked into image — image stays lean) |
+| `WIFI_SSID` | _(empty)_ | baked into `/var/lib/iwd/` as an iwd profile; joined on first boot. Plaintext in the image |
+| `WIFI_PSK` | _(empty)_ | 8-63 chars or 64 hex; empty = open network |
+| `WIFI_HIDDEN` | `false` | `true` for a hidden SSID |
 
 ## Key design decisions
 
